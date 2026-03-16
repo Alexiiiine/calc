@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IEEPA Tariff Refund Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    background: linear-gradient(168deg, #0a0f1c 0%, #101829 40%, #0d1520 100%);
+    font-family: 'DM Sans', 'Segoe UI', sans-serif;
+    color: #e2e8f0;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  .header {
+    background: linear-gradient(135deg, rgba(30,58,95,.6), rgba(15,30,55,.8));
+    border-bottom: 1px solid rgba(100,180,255,.1);
+    padding: 28px 24px 24px;
+    text-align: center;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(34,197,94,.12);
+    border: 1px solid rgba(34,197,94,.3);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #4ade80;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .badge-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #4ade80; display: inline-block;
+    animation: pulse 2s infinite;
+  }
+
+  h1 {
+    font-size: clamp(22px, 5vw, 32px);
+    font-weight: 700;
+    letter-spacing: -.02em;
+    background: linear-gradient(135deg, #fff 30%, #93c5fd);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 6px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    color: #94a3b8;
+    max-width: 520px;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+
+  .main { max-width: 620px; margin: 0 auto; padding: 24px 16px 40px; }
+
+  /* Sections */
+  .section { margin-bottom: 20px; transition: opacity .3s ease; }
+  .section.disabled { opacity: .35; pointer-events: none; }
+
+  .section-head {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+  }
+
+  .section-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    font-family: 'Space Mono', monospace;
+    background: rgba(59,130,246,.15);
+    color: #60a5fa;
+    border: 1px solid rgba(59,130,246,.3);
+    flex-shrink: 0;
+  }
+  .disabled .section-num {
+    background: rgba(255,255,255,.05);
+    color: #475569;
+    border-color: rgba(255,255,255,.06);
+  }
+
+  .section-title {
+    font-size: 14px; font-weight: 700; color: #e2e8f0;
+  }
+  .disabled .section-title { color: #475569; }
+
+  .section-body { margin-left: 36px; }
+
+  /* Form Elements */
+  label.field-label {
+    display: block; font-size: 12px; color: #94a3b8;
+    margin-bottom: 6px; font-weight: 500;
+  }
+
+  input, select {
+    width: 100%; padding: 12px 14px; font-size: 14px;
+    font-family: 'DM Sans', sans-serif; color: #e2e8f0;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 10px; transition: border-color .2s ease;
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: rgba(59,130,246,.5);
+    box-shadow: 0 0 0 3px rgba(59,130,246,.1);
+  }
+  select { cursor: pointer; }
+  input::placeholder { color: #475569; }
+
+  .input-wrap { position: relative; }
+  .input-prefix {
+    position: absolute; left: 14px; top: 50%;
+    transform: translateY(-50%);
+    color: #64748b; font-size: 16px; font-weight: 700;
+  }
+  .input-wrap input { padding-left: 30px; }
+
+  .rate-info {
+    margin-top: 10px; padding: 10px 14px;
+    background: rgba(59,130,246,.08);
+    border-radius: 8px;
+    border: 1px solid rgba(59,130,246,.15);
+    font-size: 13px; color: #93c5fd;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* Quick-fill Chips */
+  .chips { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .chip {
+    padding: 6px 14px; font-size: 12px; font-weight: 600;
+    font-family: 'Space Mono', monospace;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 8px; cursor: pointer;
+    background: rgba(255,255,255,.04);
+    color: #94a3b8; transition: all .2s ease;
+  }
+  .chip:hover, .chip.active {
+    background: rgba(59,130,246,.2);
+    border-color: rgba(59,130,246,.4);
+    color: #93c5fd;
+  }
+
+  .date-row { display: flex; gap: 12px; }
+  .date-row > div { flex: 1; }
+
+  /* Calculate Button */
+  .calc-btn {
+    width: 100%; padding: 16px 24px; font-size: 16px;
+    font-weight: 700; font-family: 'DM Sans', sans-serif;
+    color: #475569; background: rgba(255,255,255,.06);
+    border: none; border-radius: 12px;
+    cursor: not-allowed; margin-top: 8px;
+    letter-spacing: -.01em; transition: all .3s ease;
+  }
+  .calc-btn.ready {
+    color: #000;
+    background: linear-gradient(135deg, #4ade80, #22d3ee);
+    cursor: pointer;
+    box-shadow: 0 4px 24px rgba(74,222,128,.2);
+  }
+
+  /* Results */
+  .results {
+    margin-top: 28px;
+    opacity: 0; transform: translateY(20px);
+    transition: all .6s cubic-bezier(.16,1,.3,1);
+  }
+  .results.visible { opacity: 1; transform: translateY(0); }
+
+  .total-card {
+    background: linear-gradient(145deg, rgba(34,197,94,.1), rgba(6,78,59,.15));
+    border: 1px solid rgba(34,197,94,.25);
+    border-radius: 16px; padding: 28px 24px;
+    text-align: center; margin-bottom: 16px;
+  }
+
+  .total-label {
+    font-size: 12px; text-transform: uppercase;
+    letter-spacing: .1em; color: #86efac;
+    font-family: 'Space Mono', monospace; margin-bottom: 8px;
+  }
+
+  .total-value {
+    font-size: clamp(32px, 8vw, 48px);
+    font-weight: 700; letter-spacing: -.03em;
+    background: linear-gradient(135deg, #4ade80, #22d3ee);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .total-sub { font-size: 13px; color: #94a3b8; margin-top: 4px; }
+
+  /* Breakdown Grid */
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+
+  .bk-card {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 12px; padding: 16px 14px;
+  }
+
+  .bk-label {
+    font-size: 11px; color: #94a3b8; text-transform: uppercase;
+    letter-spacing: .06em; font-family: 'Space Mono', monospace;
+    margin-bottom: 6px;
+  }
+
+  .bk-value {
+    font-size: 18px; font-weight: 700; color: #f1f5f9;
+    letter-spacing: -.02em;
+  }
+
+  .bk-sub { font-size: 11px; color: #64748b; margin-top: 4px; }
+
+  /* CTA */
+  .cta-box {
+    background: linear-gradient(145deg, rgba(59,130,246,.08), rgba(99,102,241,.1));
+    border: 1px solid rgba(99,102,241,.25);
+    border-radius: 16px; padding: 24px 20px;
+  }
+
+  .cta-box h3 {
+    font-size: 17px; font-weight: 700; color: #e2e8f0;
+    margin-bottom: 6px;
+  }
+
+  .cta-box p {
+    font-size: 13px; color: #94a3b8; margin-bottom: 16px; line-height: 1.5;
+  }
+
+  .cta-primary {
+    width: 100%; padding: 14px; font-size: 15px;
+    font-weight: 700; font-family: 'DM Sans', sans-serif;
+    color: #fff;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    border: none; border-radius: 10px; cursor: pointer;
+    box-shadow: 0 4px 20px rgba(59,130,246,.25);
+  }
+  .cta-primary:disabled {
+    color: #475569; background: rgba(255,255,255,.06);
+    cursor: not-allowed; box-shadow: none;
+  }
+
+  .lead-fields { display: flex; flex-direction: column; gap: 10px; }
+  .lead-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .lead-note {
+    font-size: 11px; color: #64748b; line-height: 1.4; margin-top: 2px;
+  }
+  .lead-note strong { color: #4ade80; }
+
+  .success-box {
+    background: rgba(34,197,94,.08);
+    border: 1px solid rgba(34,197,94,.2);
+    border-radius: 16px; padding: 28px 20px; text-align: center;
+  }
+  .success-box .check { font-size: 28px; margin-bottom: 8px; }
+  .success-box .title { font-size: 16px; font-weight: 700; color: #4ade80; margin-bottom: 6px; }
+  .success-box .msg { font-size: 13px; color: #94a3b8; line-height: 1.5; }
+  .success-box .msg strong { color: #4ade80; }
+
+  .reset-btn {
+    width: 100%; margin-top: 16px; padding: 12px;
+    font-size: 13px; font-weight: 500; color: #64748b;
+    background: transparent; border: 1px solid rgba(255,255,255,.06);
+    border-radius: 10px; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .disclaimer {
+    margin-top: 28px; padding: 14px 16px;
+    background: rgba(255,255,255,.02);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,.05);
+    font-size: 11px; color: #475569; line-height: 1.6;
+  }
+  .disclaimer strong { color: #64748b; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="badge">
+    <span class="badge-dot"></span>
+    SCOTUS ruling active — refunds ordered
+  </div>
+  <h1>IEEPA Tariff Refund Calculator</h1>
+  <p class="subtitle">Estimate your potential refund after the Supreme Court struck down IEEPA tariffs on February 20, 2026</p>
+</div>
+
+<div class="main">
+
+  <!-- Section 1: Country -->
+  <div class="section" id="sec-country">
+    <div class="section-head">
+      <span class="section-num">1</span>
+      <span class="section-title">Country of Origin</span>
+    </div>
+    <div class="section-body">
+      <select id="country" onchange="onCountryChange()">
+        <option value="">Select country…</option>
+        <option value="china">China — 145%</option>
+        <option value="cambodia">Cambodia — 49%</option>
+        <option value="vietnam">Vietnam — 46%</option>
+        <option value="bangladesh">Bangladesh — 37%</option>
+        <option value="thailand">Thailand — 36%</option>
+        <option value="taiwan">Taiwan — 32%</option>
+        <option value="indonesia">Indonesia — 32%</option>
+        <option value="india">India — 26%</option>
+        <option value="south_korea">South Korea — 25%</option>
+        <option value="canada">Canada (IEEPA fentanyl) — 25%</option>
+        <option value="mexico">Mexico (IEEPA fentanyl) — 25%</option>
+        <option value="japan">Japan — 24%</option>
+        <option value="eu">European Union — 20%</option>
+        <option value="uk">United Kingdom — 10%</option>
+        <option value="other">Other (Reciprocal baseline) — 10%</option>
+        <option value="custom">Custom rate…</option>
+      </select>
+      <div id="custom-rate-wrap" class="hidden" style="margin-top:10px">
+        <label class="field-label">Custom IEEPA Tariff Rate (%)</label>
+        <input type="number" id="custom-rate" min="0" max="500" placeholder="e.g. 34" oninput="updateState()">
+      </div>
+      <div id="rate-info" class="rate-info hidden"></div>
+    </div>
+  </div>
+
+  <!-- Section 2: Import Value -->
+  <div class="section disabled" id="sec-value">
+    <div class="section-head">
+      <span class="section-num">2</span>
+      <span class="section-title">Total Import Value (USD)</span>
+    </div>
+    <div class="section-body">
+      <label class="field-label">Total value of goods imported under IEEPA tariffs</label>
+      <div class="input-wrap">
+        <span class="input-prefix">$</span>
+        <input type="text" id="import-value" placeholder="500,000" oninput="onValueInput(this)">
+      </div>
+      <div class="chips">
+        <button class="chip" onclick="setQuickValue(50000)">$50K</button>
+        <button class="chip" onclick="setQuickValue(250000)">$250K</button>
+        <button class="chip" onclick="setQuickValue(1000000)">$1.0M</button>
+        <button class="chip" onclick="setQuickValue(5000000)">$5.0M</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 3: Date Range -->
+  <div class="section disabled" id="sec-dates">
+    <div class="section-head">
+      <span class="section-num">3</span>
+      <span class="section-title">Import Period</span>
+    </div>
+    <div class="section-body">
+      <div class="date-row">
+        <div>
+          <label class="field-label">Start</label>
+          <input type="month" id="start-month" value="2025-04" min="2025-04" max="2026-02">
+        </div>
+        <div>
+          <label class="field-label">End</label>
+          <input type="month" id="end-month" value="2026-02" min="2025-04" max="2026-02">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="calc-btn" id="calc-btn" onclick="calculate()" disabled>Calculate My Refund</button>
+
+  <!-- Results -->
+  <div class="results" id="results">
+    <div class="total-card">
+      <div class="total-label">Estimated Total Refund</div>
+      <div class="total-value" id="r-total">$0.00</div>
+      <div class="total-sub">Including interest accrued since SCOTUS ruling</div>
+    </div>
+
+    <div class="grid">
+      <div class="bk-card" style="border-top:2px solid #60a5fa">
+        <div class="bk-label">IEEPA Duties Paid</div>
+        <div class="bk-value" id="r-duties">$0</div>
+        <div class="bk-sub" id="r-duties-sub"></div>
+      </div>
+      <div class="bk-card" style="border-top:2px solid #fbbf24">
+        <div class="bk-label">Interest Accrued</div>
+        <div class="bk-value" id="r-interest">$0</div>
+        <div class="bk-sub" id="r-interest-sub"></div>
+      </div>
+      <div class="bk-card" style="border-top:2px solid #f87171">
+        <div class="bk-label">Daily Interest</div>
+        <div class="bk-value" id="r-daily">$0</div>
+        <div class="bk-sub">Accruing per day of delay</div>
+      </div>
+      <div class="bk-card" style="border-top:2px solid #a78bfa">
+        <div class="bk-label">Effective Rate</div>
+        <div class="bk-value" id="r-rate">0%</div>
+        <div class="bk-sub">IEEPA rate (now invalidated)</div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div id="cta-container">
+      <div class="cta-box" id="cta-box">
+        <h3>Get Your Free Refund Eligibility Report</h3>
+        <p>Our trade specialists can review your ACE data and identify your exact refund amount — including duties you may not know are recoverable.</p>
+        <div id="cta-button-wrap">
+          <button class="cta-primary" onclick="showLeadForm()">Claim Your Free Report →</button>
+        </div>
+        <div id="lead-form" class="hidden">
+          <div class="lead-fields">
+            <div class="lead-row">
+              <input type="text" id="lead-name" placeholder="Full Name">
+              <input type="text" id="lead-company" placeholder="Company">
+            </div>
+            <input type="email" id="lead-email" placeholder="Email Address">
+            <input type="tel" id="lead-phone" placeholder="Phone (optional)">
+            <div class="lead-note">Estimated refund: <strong id="lead-refund-val"></strong> · Your data is kept confidential.</div>
+            <button class="cta-primary" id="submit-lead" onclick="submitLead()" disabled>Submit for Free Review</button>
+          </div>
+        </div>
+      </div>
+      <div class="success-box hidden" id="success-box">
+        <div class="check">✓</div>
+        <div class="title">Request Received</div>
+        <div class="msg">A trade specialist will contact you within 24 hours to review your estimated <strong id="success-val"></strong> refund.</div>
+      </div>
+    </div>
+
+    <button class="reset-btn" onclick="resetAll()">← Start Over</button>
+  </div>
+
+  <div class="disclaimer">
+    <strong>Disclaimer:</strong> This calculator provides estimates only and does not constitute legal, financial, or trade compliance advice. Actual refund amounts depend on entry-level data, liquidation status, and CBP processing. Interest rates are based on IRS corporate overpayment rates as of March 2026. Consult a licensed customs broker or trade attorney for specific guidance. Section 232 and Section 301 tariffs remain in effect and are not covered by the SCOTUS IEEPA ruling.
+  </div>
+</div>
+
+<script>
+const RATES = {
+  china:145, cambodia:49, vietnam:46, bangladesh:37, thailand:36,
+  taiwan:32, indonesia:32, india:26, south_korea:25, canada:25,
+  mexico:25, japan:24, eu:20, uk:10, other:10
+};
+
+const SCOTUS = new Date('2026-02-20');
+
+function getRate() {
+  const c = document.getElementById('country').value;
+  if (c === 'custom') return parseFloat(document.getElementById('custom-rate').value) || 0;
+  return RATES[c] || 0;
+}
+
+function getImportValue() {
+  return parseFloat(document.getElementById('import-value').value.replace(/,/g,'')) || 0;
+}
+
+function fmtFull(v) {
+  return '$' + v.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
+}
+
+function fmtShort(v) {
+  if (v >= 1e6) return '$' + (v/1e6).toFixed(2) + 'M';
+  if (v >= 1e3) return '$' + (v/1e3).toFixed(1) + 'K';
+  return '$' + v.toFixed(2);
+}
+
+function daysBetween(a, b) {
+  return Math.max(0, Math.floor((b - a) / 864e5));
+}
+
+function onCountryChange() {
+  const c = document.getElementById('country').value;
+  const customWrap = document.getElementById('custom-rate-wrap');
+  const rateInfo = document.getElementById('rate-info');
+
+  customWrap.classList.toggle('hidden', c !== 'custom');
+  if (c && c !== 'custom') {
+    rateInfo.classList.remove('hidden');
+    rateInfo.innerHTML = 'IEEPA Rate: <strong>' + RATES[c] + '%</strong> — now invalidated by SCOTUS';
+  } else {
+    rateInfo.classList.add('hidden');
+  }
+  updateState();
+}
+
+function onValueInput(el) {
+  el.value = el.value.replace(/[^0-9.]/g, '');
+  document.querySelectorAll('.chip').forEach(ch => ch.classList.remove('active'));
+  updateState();
+}
+
+function setQuickValue(v) {
+  document.getElementById('import-value').value = String(v);
+  document.querySelectorAll('.chip').forEach(ch => {
+    ch.classList.toggle('active', parseInt(ch.textContent.replace(/[^0-9]/g,'')) * (ch.textContent.includes('M') ? 1e6 : 1e3) === v);
+  });
+  updateState();
+}
+
+function updateState() {
+  const hasCountry = !!document.getElementById('country').value;
+  const val = getImportValue();
+
+  document.getElementById('sec-value').classList.toggle('disabled', !hasCountry);
+  document.getElementById('sec-dates').classList.toggle('disabled', val <= 0);
+
+  const btn = document.getElementById('calc-btn');
+  if (hasCountry && val > 0) {
+    btn.disabled = false;
+    btn.classList.add('ready');
+  } else {
+    btn.disabled = true;
+    btn.classList.remove('ready');
+  }
+
+  // Keep lead form submit in sync
+  const name = document.getElementById('lead-name');
+  const email = document.getElementById('lead-email');
+  const submitBtn = document.getElementById('submit-lead');
+  if (name && email && submitBtn) {
+    submitBtn.disabled = !(name.value.trim() && email.value.trim());
+  }
+}
+
+function calculate() {
+  const rate = getRate();
+  const importVal = getImportValue();
+  const duties = importVal * (rate / 100);
+  const iRate = duties > 10000 ? 0.045 : 0.06;
+  const days = daysBetween(SCOTUS, new Date());
+  const interest = duties * (iRate / 365) * days;
+  const total = duties + interest;
+  const daily = duties * (iRate / 365);
+
+  document.getElementById('r-total').textContent = fmtFull(total);
+  document.getElementById('r-duties').textContent = fmtFull(duties);
+  document.getElementById('r-duties-sub').textContent = rate + '% on ' + fmtShort(importVal);
+  document.getElementById('r-interest').textContent = fmtFull(interest);
+  document.getElementById('r-interest-sub').textContent = (iRate*100).toFixed(1) + '% APR × ' + days + ' days';
+  document.getElementById('r-daily').textContent = fmtFull(daily);
+  document.getElementById('r-rate').textContent = rate + '%';
+  document.getElementById('lead-refund-val').textContent = fmtFull(total);
+  document.getElementById('success-val').textContent = fmtFull(total);
+
+  const results = document.getElementById('results');
+  results.style.display = 'block';
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      results.classList.add('visible');
+      results.scrollIntoView({ behavior:'smooth', block:'start' });
+    });
+  });
+}
+
+function showLeadForm() {
+  document.getElementById('cta-button-wrap').classList.add('hidden');
+  document.getElementById('lead-form').classList.remove('hidden');
+  document.getElementById('lead-name').focus();
+}
+
+function submitLead() {
+  document.getElementById('cta-box').classList.add('hidden');
+  document.getElementById('success-box').classList.remove('hidden');
+}
+
+function resetAll() {
+  document.getElementById('country').value = '';
+  document.getElementById('custom-rate').value = '';
+  document.getElementById('import-value').value = '';
+  document.getElementById('start-month').value = '2025-04';
+  document.getElementById('end-month').value = '2026-02';
+  document.getElementById('lead-name').value = '';
+  document.getElementById('lead-email').value = '';
+  document.getElementById('lead-company').value = '';
+  document.getElementById('lead-phone').value = '';
+
+  document.getElementById('custom-rate-wrap').classList.add('hidden');
+  document.getElementById('rate-info').classList.add('hidden');
+  document.getElementById('cta-box').classList.remove('hidden');
+  document.getElementById('cta-button-wrap').classList.remove('hidden');
+  document.getElementById('lead-form').classList.add('hidden');
+  document.getElementById('success-box').classList.add('hidden');
+
+  const results = document.getElementById('results');
+  results.classList.remove('visible');
+  setTimeout(() => results.style.display = 'none', 600);
+
+  document.querySelectorAll('.chip').forEach(ch => ch.classList.remove('active'));
+  updateState();
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+// Validate lead form fields live
+document.addEventListener('input', function(e) {
+  if (['lead-name','lead-email'].includes(e.target.id)) updateState();
+});
+
+// Init
+document.getElementById('results').style.display = 'none';
+</script>
+
+</body>
+</html>
